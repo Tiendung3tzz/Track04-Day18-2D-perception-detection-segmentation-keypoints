@@ -17,6 +17,8 @@ dữ liệu custom ─▶ sửa flip_idx ─▶ fine-tune ─▶ chấm bằng O
 Toàn bộ lab nằm trong **một notebook**: [`lab_2d_perception_student.ipynb`](lab_2d_perception_student.ipynb).
 Không cần API key, không cần tự chuẩn bị dữ liệu: notebook tự tải weights và dataset (khoảng 0,8 GB).
 
+**Bản trong project này đã hoàn thiện code, Q1–Q12 và cả ba mục bonus.** Xem [`RUN_LOCAL.md`](RUN_LOCAL.md) để chạy và lấy báo cáo. Phần fine-tune của bản hoàn thiện yêu cầu GPU, đủ 40 epoch và imgsz=640; các số liệu, nhãn và output được tạo khi bạn chạy notebook.
+
 ---
 
 ## Bắt đầu nhanh
@@ -27,8 +29,7 @@ Không cần API key, không cần tự chuẩn bị dữ liệu: notebook tự 
 3. Chạy lần lượt 5 ô của **Phần 0**. Ô thứ tư tải toàn bộ weights và dataset; hãy chạy nó trong giờ nghỉ.
 4. Làm từ Phần 1 đến Phần 4 theo thứ tự. Các phần sau dùng lại hàm bạn viết ở phần trước.
 
-Notebook cố định `ultralytics==8.4.171`. Không có GPU thì notebook vẫn chạy, nhưng Phần 4 tự giảm xuống 3 epoch và kết quả
-fine-tune sẽ không dùng được để nộp.
+Notebook cố định `ultralytics==8.4.171`. Không có GPU thì Phần 1–3 vẫn chạy; bản hoàn thiện dừng trước train ở Phần 4 để bạn bật GPU và chạy đúng 40 epoch, imgsz=640 theo rubric.
 
 ---
 

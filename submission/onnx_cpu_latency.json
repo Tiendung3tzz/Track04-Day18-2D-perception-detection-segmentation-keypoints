@@ -1,0 +1,76 @@
+{
+  "env": {
+    "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+    "cpu": "x86_64",
+    "logical_cpus": 4,
+    "onnxruntime": "1.22.1",
+    "providers": [
+      "CPUExecutionProvider"
+    ],
+    "input": [
+      1,
+      3,
+      640,
+      640
+    ],
+    "precision": "FP32",
+    "warmup": 5,
+    "runs": 30,
+    "image": "bus.jpg",
+    "includes_disk_io": false
+  },
+  "rows": [
+    {
+      "Cấu hình": "one-to-many + NMS",
+      "conf": 0.25,
+      "N": 30,
+      "preprocess (ms)": 3.8203441000026337,
+      "inference (ms)": 62.9054561666635,
+      "postprocess (ms)": 1.4580054000058833,
+      "wall mean (ms)": 68.66892106667137,
+      "wall median (ms)": 68.4014604999561,
+      "wall p95 (ms)": 71.73471594999795,
+      "số box": 5,
+      "output shape": "[[1, 84, 8400]]"
+    },
+    {
+      "Cấu hình": "one-to-many + NMS",
+      "conf": 0.001,
+      "N": 30,
+      "preprocess (ms)": 3.860427033343209,
+      "inference (ms)": 63.165754333329005,
+      "postprocess (ms)": 2.246141633346118,
+      "wall mean (ms)": 69.68426056667265,
+      "wall median (ms)": 69.4613730000242,
+      "wall p95 (ms)": 71.52861499998835,
+      "số box": 186,
+      "output shape": "[[1, 84, 8400]]"
+    },
+    {
+      "Cấu hình": "one-to-one NMS-free",
+      "conf": 0.25,
+      "N": 30,
+      "preprocess (ms)": 4.0554642666658465,
+      "inference (ms)": 65.61998933334128,
+      "postprocess (ms)": 0.4759449999937715,
+      "wall mean (ms)": 70.58589343334158,
+      "wall median (ms)": 68.96065950007824,
+      "wall p95 (ms)": 78.4263898500171,
+      "số box": 5,
+      "output shape": "[[1, 300, 6]]"
+    },
+    {
+      "Cấu hình": "one-to-one NMS-free",
+      "conf": 0.001,
+      "N": 30,
+      "preprocess (ms)": 4.033886833330295,
+      "inference (ms)": 101.18837103332983,
+      "postprocess (ms)": 0.5491464666609621,
+      "wall mean (ms)": 106.21906123334004,
+      "wall median (ms)": 105.70927750001147,
+      "wall p95 (ms)": 110.19391820000806,
+      "số box": 177,
+      "output shape": "[[1, 300, 6]]"
+    }
+  ]
+}

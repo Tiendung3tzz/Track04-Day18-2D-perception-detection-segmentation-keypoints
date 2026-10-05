@@ -16,3 +16,10 @@ __pycache__/
 .ipynb_checkpoints/
 .venv*/
 .DS_Store
+
+# Môi trường kiểm tra và công cụ tạm của lab
+.lab-runtime/
+.lab-deps/
+.lab-work/
+bonus_exports/
+*.onnx

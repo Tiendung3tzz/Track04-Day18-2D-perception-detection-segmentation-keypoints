@@ -1,0 +1,896 @@
+{
+  "progress": {
+    "box_iou": "ok",
+    "nms": "ok",
+    "batched_nms": "ok",
+    "average_precision": "ok",
+    "mask_iou": "ok",
+    "polygon_to_mask": "ok",
+    "mask_to_yolo_seg": "ok",
+    "autolabel": "ok",
+    "oks": "ok",
+    "joint_angle": "ok",
+    "FLIP_IDX": "ok"
+  },
+  "latency": [
+    {
+      "Cấu hình": "one-to-many + NMS, conf 0.25",
+      "preprocess (ms)": 1.73,
+      "inference (ms)": 9.5,
+      "postprocess (ms)": 1.25,
+      "số box": 5
+    },
+    {
+      "Cấu hình": "one-to-many + NMS, conf 0.001",
+      "preprocess (ms)": 1.71,
+      "inference (ms)": 9.44,
+      "postprocess (ms)": 1.42,
+      "số box": 203
+    },
+    {
+      "Cấu hình": "one-to-one NMS-free, conf 0.25",
+      "preprocess (ms)": 1.75,
+      "inference (ms)": 10.05,
+      "postprocess (ms)": 0.44,
+      "số box": 5
+    },
+    {
+      "Cấu hình": "one-to-one NMS-free, conf 0.001",
+      "preprocess (ms)": 1.72,
+      "inference (ms)": 9.89,
+      "postprocess (ms)": 0.44,
+      "số box": 204
+    }
+  ],
+  "result_4b": {
+    "flip_idx": "giải phẫu",
+    "epochs": 40,
+    "imgsz": 640,
+    "Box mAP50-95": 0.9123396226415095,
+    "Pose mAP50": 0.995,
+    "Pose mAP50-95": 0.477629796272912,
+    "train (phút)": 5.4
+  },
+  "result_4c": [
+    {
+      "Model": "flip_idx giải phẫu",
+      "Pose mAP50-95 — val gốc": 0.477629796272912,
+      "Pose mAP50-95 — val lật gương": 0.3785165131700043
+    },
+    {
+      "Model": "flip_idx đồng nhất",
+      "Pose mAP50-95 — val gốc": 0.5413572405793511,
+      "Pose mAP50-95 — val lật gương": 0.3109240207008923
+    }
+  ],
+  "answers": {
+    "Q1": "640×480 cho 80×60 + 40×30 + 20×15 = 6 300 vị trí dự đoán, ít hơn 8 400 vì một chiều lưới chỉ còn 3/4 so với ảnh 640×640.\nNếu box lệch sang phải và xuống dưới đúng nửa kích thước, nhãn gốc là cxcywh nhưng tâm đã bị đọc như góc trên-trái xywh.\nHình minh hoạ trong notebook làm chiều nhầm ngược lại: xywh bị đọc như cxcywh nên box đỏ lệch sang trái và lên trên; cần phân biệt hướng dịch trong đề với hình.",
+    "Q2": "Trong bảng lần chạy này, chênh lệch lớn nhất là postprocess (ms) tại conf=0.001: one-to-many 1.42 ms, one-to-one 0.44 ms, lệch 0.98 ms. Riêng postprocess ở conf 0.001 là 1.42 so với 0.44 ms; thời gian có thể dao động nên không ép mọi máy phải cho cùng thứ tự. Conf thấp hoặc cảnh đông giữ nhiều ứng viên khiến NMS phải xét nhiều giao nhau, còn one-to-one không cần bước loại duplicate này. Trên CPU/NPU, NMS còn có thể chạy ngoài bộ tăng tốc và tốn chuyển dữ liệu/đồng bộ, nên bỏ NMS thường giúp giảm phần xử lý đó.",
+    "Q3": "Hai công nhân cùng class có IoU 0.75 > 0.7 nên NMS sẽ loại box có confidence thấp hơn dù có thể là hai người thật.\nTăng ngưỡng giúp giữ hai người đứng sát nhau nhưng giữ thêm duplicate; giảm ngưỡng dọn duplicate mạnh hơn nhưng dễ đếm thiếu.\nYOLO26 vẫn train head one-to-many vì nhiều phép gán positive cung cấp tín hiệu học dày cho backbone/neck và hỗ trợ hội tụ, trong khi head one-to-one học gán một dự đoán cho mỗi object để suy luận không NMS.",
+    "Q4": "Lần chạy này semantic có 8 vùng person, Mask R-CNN đếm 4 người, còn ảnh có 4 người. Hai người chạm nhau có thể bị nối thành một vùng gây đếm thiếu; một người bị che hoặc mask bị đứt thành nhiều mảnh gây đếm thừa. Panoptic thêm instance ID cho từng đối tượng thuộc nhóm things, kết hợp class cho stuff, nên đếm theo ID thay vì vùng liên thông. Trong box xe buýt, class chiếm nhiều pixel nhất là train (63.5%); model semantic học trên Cityscapes có thể nhầm hình dáng/kết cấu với train hoặc các phương tiện tương tự do khác biệt dữ liệu và góc nhìn.",
+    "Q5": "YOLO26-seg dựng mask từ 32 prototype dùng chung có độ phân giải hữu hạn, nên vật nhỏ/chi tiết mảnh chỉ chiếm ít ô prototype và dễ mất biên.\nMask R-CNN dùng lưới 28×28 trong mỗi RoI, nên object lớn có thể bị biên thô khi mask được phóng lớn về ảnh; chất lượng còn phụ thuộc feature và RoIAlign.\nHungarian matching tối đa tổng IoU dưới ràng buộc một-một, còn chọn IoU lớn nhất độc lập có thể ghép nhiều mask YOLO vào cùng một mask Mask R-CNN và bỏ sót instance khác.\nIoU giữa hai model chỉ đo độ giống nhau của các dự đoán, không phải độ chính xác so với ground-truth.",
+    "Q6": "Điểm A cho gần toàn bộ instance trong box, 47441 pixel (IoU cao nhất với mask từ box 0.987); điểm B cho một bộ phận/vùng khác, không phủ toàn bộ instance, 2714 pixel (IoU 0.000), cho thấy một điểm trong box người vẫn có thể chọn bộ phận nhỏ; đối chiếu mask trên hình để xác định vùng cụ thể. Một điểm không xác định đầy đủ phạm vi instance, còn box bao quanh người cung cấp phạm vi rõ hơn nên thường an toàn hơn cho auto-label, dù box sai vẫn gây nhãn sai. Dùng SAM trực tiếp khi có prompt tương tác, cần tính linh hoạt và đủ tài nguyên; với camera nhiều ảnh liên tục, dùng SAM tạo nhãn rồi kiểm tra/sửa và train YOLO26-seg nhỏ để giảm latency.",
+    "Q7": "Khi KP_THR=-100, model vẫn trả tọa độ đầu gối/mắt cá, với y từ 700.2 đến 710.0 px trên ảnh cao 720 px; các chấm được vẽ tại vị trí dự đoán trong RoI dù chân thật nằm ngoài khung, thường tụ gần đáy vùng người. Argmax luôn chọn một cực đại heatmap, kể cả heatmap yếu hoặc điểm không quan sát được, nên có tọa độ không chứng minh điểm hiện diện và đúng. Cần confidence/logit và thông tin visibility để bỏ qua các điểm thiếu tin cậy trước khi suy ra góc hoặc hành động.",
+    "Q8": "Từ các đường Monte Carlo lần chạy này, OKS qua 0.5 ở độ lệch chuẩn nhiễu khoảng 7.0 px cho người 40×80 và 43.7 px cho người 250×500. Đây là σ của nhiễu Gauss theo mỗi trục, không phải mọi điểm đều bị dịch đúng số pixel đó. Mắt có sigma COCO nhỏ vì cần định vị chính xác và ít mơ hồ hơn hông; khi lệch 8 px, độ giống riêng mắt là 0.53 còn hông là 0.97. Với người chỉ cao khoảng 80 px trên camera trên cao, sai số vài pixel đã ảnh hưởng mạnh nên cần đủ độ phân giải, dữ liệu đúng góc nhìn và lọc điểm thiếu tin cậy.",
+    "Q9": "Luật thân nghiêng >60° có thể báo nhầm người cúi sâu, nằm nghỉ/chơi thể thao hoặc ảnh camera bị nghiêng; có thể bỏ sót ngã hướng về camera làm thân chiếu gần thẳng đứng, hoặc ngã khi vai/hông bị che. Nếu keypoint không đủ tin cậy thì trạng thái là chưa kết luận, không được xem như đứng an toàn. Lần chạy này ảnh gốc phát hiện 5 người, ảnh xoay phát hiện 3 người; model học nhiều người đứng thẳng nên ảnh quay 90° gây lệch phân bố và confidence giảm, dù số người thật không đổi. Để cảnh báo thực tế cần thêm chuỗi thời gian, vận tốc hông và tư thế sau ngã, cùng dữ liệu camera/ngã đa hướng.",
+    "Q10": "Thống kê lần chạy này: train 210 quay phải/0 quay trái, val 53 quay phải/0 quay trái. Giữ flip_idx đồng nhất có thể vẫn cho mAP cao trên val chỉ quay phải, vì tập đó không kiểm tra đúng lỗi hoán đổi nhãn ở hướng quay trái. Khi triển khai gặp hổ quay trái/ảnh lật gương, model có thể đảo keypoint trái-phải; cần val hai hướng và kiểm tra nhãn giải phẫu, không chỉ dựa vào mAP val gốc.",
+    "Q11": "Kiểu lỗi 1 là nghi đảo trái/phải ở Frame_31.jpg: OKS=0.621, sau hoán đổi nhãn chân tăng lên 0.668; cần đối chiếu dấu X đỏ/xanh với nhãn tròn trên hình, khắc phục bằng kiểm tra nhãn giải phẫu và bổ sung dữ liệu hai hướng với flip_idx đúng.\nKiểu lỗi 2 là định vị điểm trục giữa lệch nhãn: Ảnh Frame_31.jpg (OKS=0.621), điểm tail_base: GT=(315.0,159.0), dự đoán=(347.3,195.5) px, sai số chuẩn hoá 0.108; vạch vàng nối hai vị trí trên hình. Khắc phục bằng thống nhất hướng dẫn gán nhãn mũi/đầu/withers/gốc đuôi và thêm ví dụ có sai số lớn vào tập train.",
+    "Q12": "Dùng sigma=1/12 cho mọi keypoint là mặc định tiện để chấm dataset custom, nhưng giả định mũi và gốc đuôi có cùng độ mơ hồ nên không phản ánh đầy đủ độ khó gán nhãn của từng điểm.\nSigma lớn làm cùng sai số pixel được chấm nhẹ hơn, vì vậy mAP/OKS cao có thể che lỗi định vị và cần xem thêm sai số pixel/chuẩn hoá theo từng keypoint.\nĐể ước lượng sigma, cho nhiều người gán nhãn độc lập cùng một tập ảnh train/calibration đại diện, đo độ phân tán từng điểm sau khi chuẩn hoá theo kích thước object, xử lý visibility và ngoại lệ, rồi cố định sigma trước khi đánh giá.\nKhông ước lượng từ sai số model trên val hay điều chỉnh sigma để tăng điểm; giữ cùng bộ sigma khi so sánh các model."
+  },
+  "env": {
+    "device": "cuda",
+    "torch": "2.11.0+cu128",
+    "ultralytics": "8.4.171"
+  },
+  "error_analysis": {
+    "mean_oks": 0.7422287891703528,
+    "missed": 0,
+    "swapped_suspects": 4,
+    "mean_error_by_keypoint": {
+      "nose": 0.04797878323518749,
+      "head": 0.03490124964633815,
+      "withers": 0.03179601801128477,
+      "tail_base": 0.04765465447816768,
+      "right_hind_hock": 0.14097356092873245,
+      "right_hind_paw": 0.21268210116928302,
+      "left_hind_paw": 0.22059628973276393,
+      "left_hind_hock": 0.1439777444491057,
+      "right_front_wrist": 0.06379362885095444,
+      "right_front_paw": 0.2691465662677493,
+      "left_front_wrist": 0.06351475479460554,
+      "left_front_paw": 0.21692074670968817
+    },
+    "worst6": [
+      {
+        "file": "Frame_31.jpg",
+        "oks": 0.6212330755640469,
+        "oks_swapped": 0.6680505897537854,
+        "gt": [
+          [
+            1006.0,
+            358.0
+          ],
+          [
+            935.0,
+            204.0
+          ],
+          [
+            777.0,
+            141.0
+          ],
+          [
+            315.0,
+            159.0
+          ],
+          [
+            218.0,
+            429.0
+          ],
+          [
+            199.0,
+            545.0
+          ],
+          [
+            528.0,
+            532.0
+          ],
+          [
+            436.0,
+            466.0
+          ],
+          [
+            718.0,
+            344.0
+          ],
+          [
+            876.0,
+            526.0
+          ],
+          [
+            768.0,
+            378.0
+          ],
+          [
+            713.0,
+            539.0
+          ]
+        ],
+        "pred": [
+          [
+            994.5931396484375,
+            339.58258056640625
+          ],
+          [
+            942.3541259765625,
+            204.91329956054688
+          ],
+          [
+            763.9689331054688,
+            142.253173828125
+          ],
+          [
+            347.2542419433594,
+            195.46731567382812
+          ],
+          [
+            368.5734558105469,
+            440.7887878417969
+          ],
+          [
+            431.0518798828125,
+            539.7330322265625
+          ],
+          [
+            383.45550537109375,
+            535.2404174804688
+          ],
+          [
+            378.4776611328125,
+            461.3882141113281
+          ],
+          [
+            719.9529418945312,
+            349.7699890136719
+          ],
+          [
+            743.822265625,
+            533.9541015625
+          ],
+          [
+            767.9114990234375,
+            360.58709716796875
+          ],
+          [
+            802.8153686523438,
+            540.233642578125
+          ]
+        ],
+        "normalized_error": [
+          0.04817965398607077,
+          0.016481042978232916,
+          0.029114487782114944,
+          0.10827364886652607,
+          0.33589657245288257,
+          0.5162108076953227,
+          0.3215443054953579,
+          0.12833881364528185,
+          0.013547421797951,
+          0.2944919334048731,
+          0.03872638409957303,
+          0.19976609609270293
+        ]
+      },
+      {
+        "file": "Frame_17.jpg",
+        "oks": 0.6299418606122593,
+        "oks_swapped": 0.5134003749910415,
+        "gt": [
+          [
+            1085.0,
+            364.0
+          ],
+          [
+            1020.0,
+            217.0
+          ],
+          [
+            824.0,
+            152.0
+          ],
+          [
+            367.0,
+            183.0
+          ],
+          [
+            454.0,
+            479.0
+          ],
+          [
+            523.0,
+            558.0
+          ],
+          [
+            207.0,
+            552.0
+          ],
+          [
+            283.0,
+            408.0
+          ],
+          [
+            909.0,
+            385.0
+          ],
+          [
+            714.0,
+            549.0
+          ],
+          [
+            717.0,
+            409.0
+          ],
+          [
+            1032.0,
+            546.0
+          ]
+        ],
+        "pred": [
+          [
+            1055.4527587890625,
+            347.2397155761719
+          ],
+          [
+            1001.78759765625,
+            214.452392578125
+          ],
+          [
+            823.1492919921875,
+            159.6118927001953
+          ],
+          [
+            390.9444274902344,
+            176.96250915527344
+          ],
+          [
+            429.7490234375,
+            464.15557861328125
+          ],
+          [
+            460.63446044921875,
+            551.2366943359375
+          ],
+          [
+            438.7961120605469,
+            547.09814453125
+          ],
+          [
+            403.084228515625,
+            450.6412048339844
+          ],
+          [
+            838.6304321289062,
+            361.701416015625
+          ],
+          [
+            823.5782470703125,
+            519.0564575195312
+          ],
+          [
+            751.719970703125,
+            394.5026550292969
+          ],
+          [
+            790.5745849609375,
+            523.4923095703125
+          ]
+        ],
+        "normalized_error": [
+          0.07445730776444387,
+          0.040307851986353976,
+          0.01678814008455996,
+          0.054125699226582114,
+          0.06232259733302009,
+          0.1374985233905735,
+          0.5081801637035018,
+          0.2793105576745261,
+          0.16247497179642348,
+          0.248987064360896,
+          0.08246930308805557,
+          0.5314674189880126
+        ]
+      },
+      {
+        "file": "Frame_51.jpg",
+        "oks": 0.6344657623630726,
+        "oks_swapped": 0.48878161244656715,
+        "gt": [
+          [
+            998.0,
+            399.0
+          ],
+          [
+            934.0,
+            257.0
+          ],
+          [
+            741.0,
+            190.0
+          ],
+          [
+            319.0,
+            206.99999999999997
+          ],
+          [
+            407.0,
+            500.0
+          ],
+          [
+            474.0,
+            588.0
+          ],
+          [
+            169.0,
+            592.0
+          ],
+          [
+            206.0,
+            474.0
+          ],
+          [
+            819.0,
+            406.0
+          ],
+          [
+            651.0,
+            583.0
+          ],
+          [
+            650.0,
+            434.0
+          ],
+          [
+            968.0,
+            570.0
+          ]
+        ],
+        "pred": [
+          [
+            985.3963012695312,
+            379.8750915527344
+          ],
+          [
+            936.5941162109375,
+            246.8331298828125
+          ],
+          [
+            762.5818481445312,
+            195.59019470214844
+          ],
+          [
+            307.6046447753906,
+            211.75668334960938
+          ],
+          [
+            364.64892578125,
+            499.910400390625
+          ],
+          [
+            381.4793395996094,
+            580.9134521484375
+          ],
+          [
+            356.41583251953125,
+            586.8740844726562
+          ],
+          [
+            335.40582275390625,
+            480.9085998535156
+          ],
+          [
+            773.9152221679688,
+            393.1293029785156
+          ],
+          [
+            747.6646118164062,
+            544.07421875
+          ],
+          [
+            678.6298217773438,
+            433.8841247558594
+          ],
+          [
+            723.6360473632812,
+            546.6500854492188
+          ]
+        ],
+        "normalized_error": [
+          0.05088030909160782,
+          0.023308398072425327,
+          0.04952437404331071,
+          0.027430638183058898,
+          0.09407942376440426,
+          0.20612856514724576,
+          0.41648359434593013,
+          0.2878731056920202,
+          0.10415303729741522,
+          0.23148850725898817,
+          0.06359916998700348,
+          0.5453057306228105
+        ]
+      },
+      {
+        "file": "Frame_67.jpg",
+        "oks": 0.6368509106362242,
+        "oks_swapped": 0.6443778509337986,
+        "gt": [
+          [
+            956.0,
+            422.0
+          ],
+          [
+            903.0,
+            289.0
+          ],
+          [
+            710.0,
+            217.0
+          ],
+          [
+            282.0,
+            240.0
+          ],
+          [
+            166.0,
+            510.0
+          ],
+          [
+            136.0,
+            622.0
+          ],
+          [
+            421.0,
+            605.0
+          ],
+          [
+            366.0,
+            545.0
+          ],
+          [
+            649.0,
+            432.0
+          ],
+          [
+            890.0,
+            578.0
+          ],
+          [
+            720.0,
+            427.0
+          ],
+          [
+            628.0,
+            606.0
+          ]
+        ],
+        "pred": [
+          [
+            936.7457885742188,
+            411.6961669921875
+          ],
+          [
+            882.2857055664062,
+            280.26177978515625
+          ],
+          [
+            706.7166748046875,
+            217.87709045410156
+          ],
+          [
+            297.75433349609375,
+            270.6640625
+          ],
+          [
+            321.6092224121094,
+            505.74261474609375
+          ],
+          [
+            380.19830322265625,
+            602.5420532226562
+          ],
+          [
+            344.7154541015625,
+            597.4620361328125
+          ],
+          [
+            329.9245910644531,
+            529.0093383789062
+          ],
+          [
+            653.7427368164062,
+            420.4485778808594
+          ],
+          [
+            686.2069702148438,
+            604.5629272460938
+          ],
+          [
+            721.5980834960938,
+            424.6318664550781
+          ],
+          [
+            755.1670532226562,
+            608.6705932617188
+          ]
+        ],
+        "normalized_error": [
+          0.048566960503095176,
+          0.049999345205421486,
+          0.007558088625048241,
+          0.07667023375869923,
+          0.34620072898132903,
+          0.5448125776798858,
+          0.1704812827902339,
+          0.08775936856002514,
+          0.02777112530652265,
+          0.4570646794604285,
+          0.006353697367291127,
+          0.2828788758485879
+        ]
+      },
+      {
+        "file": "Frame_18.jpg",
+        "oks": 0.6444683527065738,
+        "oks_swapped": 0.5135075523160514,
+        "gt": [
+          [
+            1085.0,
+            364.0
+          ],
+          [
+            1012.0,
+            215.0
+          ],
+          [
+            807.0,
+            156.0
+          ],
+          [
+            362.0,
+            176.0
+          ],
+          [
+            440.0,
+            476.0
+          ],
+          [
+            505.0,
+            552.0
+          ],
+          [
+            207.0,
+            552.0
+          ],
+          [
+            283.0,
+            408.0
+          ],
+          [
+            892.0,
+            358.0
+          ],
+          [
+            699.0,
+            550.0
+          ],
+          [
+            704.0,
+            410.0
+          ],
+          [
+            1032.0,
+            546.0
+          ]
+        ],
+        "pred": [
+          [
+            1046.56787109375,
+            345.8382568359375
+          ],
+          [
+            997.17578125,
+            213.26296997070312
+          ],
+          [
+            819.0474243164062,
+            159.76959228515625
+          ],
+          [
+            386.844970703125,
+            175.51605224609375
+          ],
+          [
+            426.119873046875,
+            463.6410827636719
+          ],
+          [
+            455.03656005859375,
+            549.5804443359375
+          ],
+          [
+            431.93621826171875,
+            544.671875
+          ],
+          [
+            398.4107666015625,
+            446.6282653808594
+          ],
+          [
+            837.6886596679688,
+            359.9799499511719
+          ],
+          [
+            817.621337890625,
+            514.6124267578125
+          ],
+          [
+            742.747802734375,
+            394.06573486328125
+          ],
+          [
+            780.564697265625,
+            519.6590576171875
+          ]
+        ],
+        "normalized_error": [
+          0.09337671480698646,
+          0.0327874174079108,
+          0.027730048441311494,
+          0.05458773884597423,
+          0.040825911139387036,
+          0.10988419105220447,
+          0.494383516844913,
+          0.2673486433278345,
+          0.1193859339637669,
+          0.2719258059416189,
+          0.09203416046906368,
+          0.5553550622197873
+        ]
+      },
+      {
+        "file": "Frame_37.jpg",
+        "oks": 0.6474791026268626,
+        "oks_swapped": 0.615028789328021,
+        "gt": [
+          [
+            1010.0,
+            357.0
+          ],
+          [
+            935.0,
+            204.0
+          ],
+          [
+            738.0,
+            158.0
+          ],
+          [
+            296.0,
+            151.0
+          ],
+          [
+            207.0,
+            429.0
+          ],
+          [
+            183.0,
+            550.0
+          ],
+          [
+            413.0,
+            544.0
+          ],
+          [
+            345.0,
+            466.0
+          ],
+          [
+            656.0,
+            350.0
+          ],
+          [
+            888.0,
+            534.0
+          ],
+          [
+            790.0,
+            350.0
+          ],
+          [
+            602.0,
+            542.0
+          ]
+        ],
+        "pred": [
+          [
+            991.7275390625,
+            340.43536376953125
+          ],
+          [
+            928.9798583984375,
+            207.39306640625
+          ],
+          [
+            735.4207153320312,
+            143.12091064453125
+          ],
+          [
+            289.3137512207031,
+            189.13465881347656
+          ],
+          [
+            314.0610656738281,
+            433.74169921875
+          ],
+          [
+            381.65240478515625,
+            534.7587890625
+          ],
+          [
+            346.812255859375,
+            533.2740478515625
+          ],
+          [
+            323.54034423828125,
+            456.64178466796875
+          ],
+          [
+            676.8173828125,
+            346.8869934082031
+          ],
+          [
+            718.2532958984375,
+            543.7905883789062
+          ],
+          [
+            750.7887573242188,
+            350.4559631347656
+          ],
+          [
+            786.9381103515625,
+            550.499267578125
+          ]
+        ],
+        "normalized_error": [
+          0.054786990609146116,
+          0.015351071397195775,
+          0.03354553876926051,
+          0.08600505869679956,
+          0.23805995192867052,
+          0.4425858711380351,
+          0.14894838748771067,
+          0.05200635087639678,
+          0.046758190219987235,
+          0.37770417348065316,
+          0.0871102405104095,
+          0.4112574804804052
+        ]
+      }
+    ]
+  },
+  "onnx_cpu_latency": [
+    {
+      "Cấu hình": "one-to-many + NMS",
+      "conf": 0.25,
+      "N": 30,
+      "preprocess (ms)": 3.8203441000026337,
+      "inference (ms)": 62.9054561666635,
+      "postprocess (ms)": 1.4580054000058833,
+      "wall mean (ms)": 68.66892106667137,
+      "wall median (ms)": 68.4014604999561,
+      "wall p95 (ms)": 71.73471594999795,
+      "số box": 5,
+      "output shape": "[[1, 84, 8400]]"
+    },
+    {
+      "Cấu hình": "one-to-many + NMS",
+      "conf": 0.001,
+      "N": 30,
+      "preprocess (ms)": 3.860427033343209,
+      "inference (ms)": 63.165754333329005,
+      "postprocess (ms)": 2.246141633346118,
+      "wall mean (ms)": 69.68426056667265,
+      "wall median (ms)": 69.4613730000242,
+      "wall p95 (ms)": 71.52861499998835,
+      "số box": 186,
+      "output shape": "[[1, 84, 8400]]"
+    },
+    {
+      "Cấu hình": "one-to-one NMS-free",
+      "conf": 0.25,
+      "N": 30,
+      "preprocess (ms)": 4.0554642666658465,
+      "inference (ms)": 65.61998933334128,
+      "postprocess (ms)": 0.4759449999937715,
+      "wall mean (ms)": 70.58589343334158,
+      "wall median (ms)": 68.96065950007824,
+      "wall p95 (ms)": 78.4263898500171,
+      "số box": 5,
+      "output shape": "[[1, 300, 6]]"
+    },
+    {
+      "Cấu hình": "one-to-one NMS-free",
+      "conf": 0.001,
+      "N": 30,
+      "preprocess (ms)": 4.033886833330295,
+      "inference (ms)": 101.18837103332983,
+      "postprocess (ms)": 0.5491464666609621,
+      "wall mean (ms)": 106.21906123334004,
+      "wall median (ms)": 105.70927750001147,
+      "wall p95 (ms)": 110.19391820000806,
+      "số box": 177,
+      "output shape": "[[1, 300, 6]]"
+    }
+  ],
+  "onnx_env": {
+    "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+    "cpu": "x86_64",
+    "logical_cpus": 4,
+    "onnxruntime": "1.22.1",
+    "providers": [
+      "CPUExecutionProvider"
+    ],
+    "input": [
+      1,
+      3,
+      640,
+      640
+    ],
+    "precision": "FP32",
+    "warmup": 5,
+    "runs": 30,
+    "image": "bus.jpg",
+    "includes_disk_io": false
+  },
+  "bonus_4c_explanation": "Model giải phẫu: val gốc 0.4776, val gương 0.3785, chênh gốc−gương 9.91 điểm phần trăm; model đồng nhất: 0.5414 và 0.3109, chênh 23.04 điểm phần trăm. Model đồng nhất giảm nhiều hơn model giải phẫu trên ảnh gương. Metric có thể che lỗi là Pose mAP trên val gốc chỉ gồm hổ quay phải: nó không kiểm tra nhãn trái/phải khi đổi hướng. Pose mAP50 cũng dễ che sai số hơn mAP50-95, và sigma đồng đều 1/12 có thể dung thứ lỗi định vị chân. Cần đọc thêm lỗi từng keypoint và số ca nghi đảo nhãn trên val gương, xây dựng val/test độc lập có cả hai hướng, nhiều tư thế/che khuất, nhãn giải phẫu được kiểm tra; val gương là stress test, không thay thế ảnh quay trái thực tế.",
+  "notebook_url": ""
+}

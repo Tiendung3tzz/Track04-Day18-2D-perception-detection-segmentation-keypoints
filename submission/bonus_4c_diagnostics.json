@@ -1,0 +1,40 @@
+{
+  "flip_idx giải phẫu": {
+    "mean_oks": 0.7075715714388949,
+    "swap_suspects": 13,
+    "images": 53,
+    "mean_error_by_keypoint": {
+      "nose": 0.0496205884545606,
+      "head": 0.0418291927262641,
+      "withers": 0.04166820267838978,
+      "tail_base": 0.04093910903001512,
+      "right_hind_hock": 0.1716755123213339,
+      "right_hind_paw": 0.2564816304987375,
+      "left_hind_paw": 0.1804567052562524,
+      "left_hind_hock": 0.11018358553559812,
+      "right_front_wrist": 0.1318977115006796,
+      "right_front_paw": 0.22154187021324678,
+      "left_front_wrist": 0.11769414330332312,
+      "left_front_paw": 0.2649788580641016
+    }
+  },
+  "flip_idx đồng nhất": {
+    "mean_oks": 0.673998791803368,
+    "swap_suspects": 32,
+    "images": 53,
+    "mean_error_by_keypoint": {
+      "nose": 0.04263039145788446,
+      "head": 0.03535175660259661,
+      "withers": 0.03701949516887215,
+      "tail_base": 0.03910100697229603,
+      "right_hind_hock": 0.16228687330537378,
+      "right_hind_paw": 0.23721855907297879,
+      "left_hind_paw": 0.2507704129179399,
+      "left_hind_hock": 0.17721203137971425,
+      "right_front_wrist": 0.13946173514280566,
+      "right_front_paw": 0.2259509778071302,
+      "left_front_wrist": 0.16142531189849083,
+      "left_front_paw": 0.2654570603797297
+    }
+  }
+}
